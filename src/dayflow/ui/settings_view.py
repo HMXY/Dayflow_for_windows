@@ -156,6 +156,13 @@ class SettingsView(QWidget):
         load_key_btn.clicked.connect(self.load_api_key)
         form.addRow("", load_key_btn)
 
+        # API Base URL (for third-party proxy)
+        self.api_base_url_input = QLineEdit()
+        self.api_base_url_input.setPlaceholderText(
+            "留空使用官方 API 地址，或输入第三方代理地址"
+        )
+        form.addRow("API 地址:", self.api_base_url_input)
+
         # Analysis interval
         self.interval_spin = QSpinBox()
         self.interval_spin.setRange(5, 60)
@@ -263,6 +270,10 @@ class SettingsView(QWidget):
             summary_time = getattr(self.config.analysis, "daily_summary_time", "22:00")
             self.summary_time_input.setText(summary_time)
 
+            # Load API base URL
+            api_base_url = getattr(self.config.analysis, "api_base_url", "")
+            self.api_base_url_input.setText(api_base_url)
+
             # Recording settings
             quality_map = {"low": 0, "medium": 1, "high": 2}
             quality_index = quality_map.get(self.config.recording.video_quality.lower(), 1)
@@ -299,6 +310,9 @@ class SettingsView(QWidget):
             # Save daily summary settings
             self.config.set("analysis.auto_daily_summary", self.auto_summary_check.isChecked())
             self.config.set("analysis.daily_summary_time", self.summary_time_input.text())
+
+            # Save API base URL
+            self.config.set("analysis.api_base_url", self.api_base_url_input.text().strip())
 
             # Save API key if provided
             api_key = self.api_key_input.text().strip()

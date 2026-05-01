@@ -18,6 +18,7 @@ from dayflow.core.storage import StorageManager
 from dayflow.core.power_manager import PowerManager
 from dayflow.core.video_processor import VideoProcessor
 from dayflow.analysis.gemini_service import GeminiService
+from dayflow.analysis.openai_service import OpenAIService
 from dayflow.analysis.analysis_manager import AnalysisManager
 from dayflow.services.daily_summary_manager import DailySummaryManager
 from dayflow.models.database import init_db
@@ -65,10 +66,21 @@ class DayflowApp:
             # Initialize AI service (if API key available)
             api_key = SecureStorage.get_api_key(self.config.analysis.provider)
             if api_key:
-                llm_service = GeminiService(
-                    api_key=api_key,
-                    model_name=self.config.analysis.model_name
-                )
+                provider = self.config.analysis.provider.lower()
+                base_url = getattr(self.config.analysis, "api_base_url", "") or ""
+
+                if provider == "openai":
+                    llm_service = OpenAIService(
+                        api_key=api_key,
+                        model_name=self.config.analysis.model_name,
+                        base_url=base_url if base_url.strip() else None,
+                    )
+                else:
+                    # Default to Gemini
+                    llm_service = GeminiService(
+                        api_key=api_key,
+                        model_name=self.config.analysis.model_name,
+                    )
 
                 # Initialize analysis manager
                 self.analysis_manager = AnalysisManager(

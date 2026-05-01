@@ -24,9 +24,15 @@ class DailySummaryManager:
         self.config = config
         self.scheduler = BackgroundScheduler()
 
-        # Get model name from config
+        # Get model name and provider from config
         model_name = getattr(self.config.analysis, "daily_summary_model_name", "gemini-2.0-flash-lite")
-        self.summary_service = DailySummaryService(model_name=model_name)
+        provider = getattr(self.config.analysis, "provider", "gemini")
+        api_base_url = getattr(self.config.analysis, "api_base_url", "")
+        self.summary_service = DailySummaryService(
+            model_name=model_name,
+            provider=provider,
+            api_base_url=api_base_url,
+        )
         self.is_running = False
 
     def start(self) -> None:

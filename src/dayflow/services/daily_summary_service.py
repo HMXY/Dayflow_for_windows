@@ -8,6 +8,7 @@ from dayflow.models.database import get_session_direct
 from dayflow.models.timeline_activity import TimelineActivity
 from dayflow.models.daily_summary import DailySummary
 from dayflow.analysis.gemini_service import GeminiService
+from dayflow.analysis.openai_service import OpenAIService
 from dayflow.utils.security import SecureStorage
 from dayflow.ui.theme import Theme
 
@@ -17,29 +18,52 @@ logger = logging.getLogger(__name__)
 class DailySummaryService:
     """Service for generating and managing daily summaries."""
 
-    def __init__(self, api_key: Optional[str] = None, model_name: str = "gemini-2.0-flash-lite"):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model_name: str = "gemini-2.0-flash-lite",
+        provider: str = "gemini",
+        api_base_url: str = "",
+    ):
         """
         Initialize daily summary service.
 
         Args:
             api_key: API key for LLM service (if None, will try to get from secure storage)
             model_name: LLM model to use for summary generation
+            provider: AI provider name (gemini, openai)
+            api_base_url: Custom API base URL for third-party proxy
         """
         self.model_name = model_name
+        self.provider = provider.lower()
+        self.api_base_url = api_base_url
         self.api_key = api_key or self._get_api_key()
         self.llm_service = None
 
         if self.api_key:
             try:
-                self.llm_service = GeminiService(api_key=self.api_key, model_name=self.model_name)
-                logger.info(f"Daily summary service initialized with model: {self.model_name}")
+                if self.provider == "openai":
+                    self.llm_service = OpenAIService(
+                        api_key=self.api_key,
+                        model_name=self.model_name,
+                        base_url=self.api_base_url if self.api_base_url.strip() else None,
+                    )
+                else:
+                    self.llm_service = GeminiService(
+                        api_key=self.api_key,
+                        model_name=self.model_name,
+                    )
+                logger.info(
+                    f"Daily summary service initialized with "
+                    f"provider: {self.provider}, model: {self.model_name}"
+                )
             except Exception as e:
                 logger.error(f"Failed to initialize LLM service: {e}")
 
     def _get_api_key(self) -> Optional[str]:
         """Get API key from secure storage."""
         try:
-            return SecureStorage.get_api_key("gemini")
+            return SecureStorage.get_api_key(self.provider)
         except Exception as e:
             logger.error(f"Failed to get API key: {e}")
             return None
@@ -262,8 +286,12 @@ class DailySummaryService:
 """
 
         try:
-            response = self.llm_service.model.generate_content(prompt)
-            return response.text
+            if isinstance(self.llm_service, OpenAIService):
+                return self.llm_service.generate_text(prompt)
+            else:
+                # Gemini service - use model directly
+                response = self.llm_service.model.generate_content(prompt)
+                return response.text
         except Exception as e:
             logger.error(f"Error calling LLM for summary: {e}", exc_info=True)
             return f"生成总结时出错：{str(e)}"

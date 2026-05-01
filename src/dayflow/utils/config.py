@@ -28,6 +28,7 @@ class AnalysisConfig:
     provider: str = "gemini"  # gemini, ollama, openai
     model_name: str = "gemini-2.5-flash"  # Model to use for video analysis
     daily_summary_model_name: str = "gemini-2.0-flash-lite"  # Model for daily summaries
+    api_base_url: str = ""  # Custom API base URL for third-party proxy/relay
     analysis_interval_minutes: int = 15
     context_window_minutes: int = 60
     auto_categorize: bool = True
